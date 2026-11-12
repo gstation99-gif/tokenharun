@@ -54,7 +54,7 @@
                 document.getElementById('hdxResult').value = data.hdx_line;
                 document.getElementById('resultBox').style.display = 'block';
             } else {
-                alert("Hata: " + data.message);
+                alert("Hata: " + (data.message || "Bilinmeyen hata"));
             }
         }
 

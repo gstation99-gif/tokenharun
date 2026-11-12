@@ -15,33 +15,36 @@ def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/api/parse")
-def parse_token(raw_data: str = Form(...)):
+def parse_token(raw_data: str = Form("")):
     try:
+        if not raw_data:
+            return JSONResponse(status_code=400, content={"status": "error", "message": "Boş veri gönderildi!"})
+
         player_id = ""
         pass_token = ""
         jwt_token = ""
 
-        # 1. JWT bulma (eyJ...)
+        # 1. JWT bulma (Basit ve güvenli regex)
         jwt_matches = re.findall(r'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+', raw_data)
         if jwt_matches:
             jwt_matches.sort(key=len, reverse=True)
             jwt_token = jwt_matches[0]
 
-            # JWT payload çözümleme
             try:
                 parts = jwt_token.split('.')
-                payload_b64 = parts[1] + '==='
-                decoded_bytes = base64.urlsafe_b64decode(payload_b64.encode('utf-8'))
-                decoded_json = json.loads(decoded_bytes.decode('utf-8'))
-                
-                for k, v in decoded_json.items():
-                    if isinstance(v, str):
-                        if re.match(r'^\d+-\d+$', v) and not player_id:
-                            player_id = v
+                if len(parts) >= 2:
+                    payload_b64 = parts[1] + '==='
+                    decoded_bytes = base64.urlsafe_b64decode(payload_b64.encode('utf-8'))
+                    decoded_json = json.loads(decoded_bytes.decode('utf-8'))
+                    
+                    for k, v in decoded_json.items():
+                        if isinstance(v, str):
+                            if re.match(r'^\d+-\d+$', v) and not player_id:
+                                player_id = v
             except Exception:
                 pass
 
-        # 2. Player ID arama (Örn: 18-44567154)
+        # 2. Player ID arama
         if not player_id:
             pid_match = re.search(r'\b\d{1,3}-\d{6,12}\b', raw_data)
             if pid_match:
